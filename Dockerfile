@@ -16,7 +16,7 @@ ARG APT_PROXY=""
 ENV APT_PROXY="${APT_PROXY}"
 
 # Enable the inclusion of editors inside the container. Set to 0 to disable
-ARG WITH_EDITORS="1"
+ARG WITH_EDITORS="0"
 ENV WITH_EDITORS="${WITH_EDITORS}"
 
 # Specify the python we're using
@@ -32,7 +32,6 @@ RUN if [ -n "${APT_PROXY}" ]; then \
 		echo "Acquire::Http::Proxy { \"${APT_PROXY}\"; }" >/etc/apt/apt.conf.d/02proxy; \
 	fi ; \
 	apt update && \
-	apt upgrade -qy && \
 	apt install -qy "${TARGET_PY}" python-is-python3 python3-pip python3-virtualenv && \
 	if [ "${WITH_EDITORS:-1}" != "0" ]; then apt install -qy nano vim neovim; else true; fi && \
 	apt clean cache -y && apt autoclean -qy && \
@@ -44,7 +43,7 @@ FROM baseline as python
 RUN	\
 	"${TARGET_PY}" -m virtualenv /var/venv && \
 	. /var/venv/bin/activate && \
-	python -m pip install --upgrade pip wheel setuptools
+	python -m pip install --no-cache --upgrade pip wheel setuptools
 
 
 # Final layer: install maturin and lets give it its final name.
@@ -55,9 +54,9 @@ ENV PATH="/root/.venv/bin:${PATH}"
 
 # Copy the virtual env over without baggage
 COPY --from=python /var/venv /var/venv
-RUN . /var/venv/bin/activate && cargo install maturin
+RUN . /var/venv/bin/activate && cargo install --no-default-features --features full maturin
 
 # Install a copy of the sample into /opt/sample
-COPY sample/* /opt/sample
+COPY sample /opt/sample
 
 CMD [ "/bin/sh", "-c", "bash --init-file /var/venv/bin/activate" ]
