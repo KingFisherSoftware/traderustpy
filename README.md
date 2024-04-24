@@ -16,7 +16,7 @@ Start by creating a project for yourself and deploying it.
 
 To run using the existing docker image and see what the container is *for*:
 
-```
+```sh
 docker run --rm -it -v ${PWD}:/src kfsone/rumao3
 cd sample 
 python -c 'import sample; sample.greeting()'  # <- import fail
@@ -61,7 +61,7 @@ This will initialize a new Rust crate and pyo3 package combo in the directory 'm
 which will also be visible in the directory you launched from back on the host machine.
 
 Back in the container:
-```
+```sh
 cd mypackage
 nano src/lib.rs
 ```
@@ -71,7 +71,7 @@ machine.
 
 Once you're done, time to build and deploy and try your package inside the container:
 
-```
+```sh
 maturin deploy
 python
 import mypackage
