@@ -1,12 +1,6 @@
-.code
-.vs
-.vscode
-.idea
-.intellij
-*~
-mypackage
-sample/Cargo.lock
+/target
 
+# Byte-compiled / optimized / DLL files
 __pycache__/
 .pytest_cache/
 *.py[cod]
@@ -30,7 +24,6 @@ sdist/
 var/
 include/
 man/
-.venv/
 venv/
 *.egg-info/
 .installed.cfg
@@ -68,6 +61,12 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+
+# PyCharm
+.idea/
+
+# VSCode
+.vscode/
 
 # Pyenv
 .python-version
