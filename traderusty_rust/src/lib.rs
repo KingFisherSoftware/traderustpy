@@ -50,11 +50,12 @@ mod tests {
 
     #[test]
     fn test_count_file_lines() {
-        spread_newlines("test1.txt", vec![0]);
-        spread_newlines("test2.txt", vec![1]);
-        spread_newlines("test3.txt", vec![0, 0]);
-        spread_newlines("test4.txt", vec![0, 1, 2, 3, 4]);
-        spread_newlines("test5.txt", vec![100, 1000, 10000]);
+        spread_newlines("tests/newline_count.test1.txt", vec![0]);
+        spread_newlines("tests/newline_count.test2.txt", vec![1]);
+        spread_newlines("tests/newline_count.test3.txt", vec![0, 0]);
+        spread_newlines("tests/newline_count.test4.txt", vec![0, 1, 2, 3, 4]);
+        spread_newlines("tests/newline_count.test5.txt", vec![64, 128, 192, 256, 512, 1023, 1024, 1025, 99, 90, 80, 70, 60, 50, 40, 30, 20, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 100]);
+        spread_newlines("tests/newline_count.test6.txt", vec![100, 1000, 10000]);
     }
 
 }
