@@ -25,37 +25,65 @@ fn count_file_lines(filename: &str) -> io::Result<usize> {
 
 #[cfg(test)]
 mod tests {
-    use std::cmp::min;
     use std::io::Write;
+    use tempfile::NamedTempFile;
     use super::*;
-    fn spread_newlines(filename: &str, intervals: Vec<usize>) {
-        let mut buffer = File::create(filename).unwrap();
-        let mut bytes = Vec::with_capacity(255);
-        for i in 1..256 {
+
+    #[test]
+    fn test_count_file_lines_no_newlines() {
+        // create a temp file with no content.
+        let mut tmpfile = NamedTempFile::new().unwrap();
+        tmpfile.flush().unwrap();
+        assert_eq!(count_file_lines(tmpfile.path().to_str().unwrap()).unwrap(), 0);
+
+        // write some content with no newlines
+        write!(tmpfile, "no newline").unwrap();
+        tmpfile.flush().unwrap();
+        assert_eq!(count_file_lines(tmpfile.path().to_str().unwrap()).unwrap(), 0);
+
+        // now write every character except newline
+        for i in 0..256 {
             if i != 10 {
-                bytes.push(i as u8);
+                write!(tmpfile, "{}", i as u8).unwrap();
             }
         }
-        println!("capacity size = {}, first_byte = {}, last byte = {}", bytes.len(), bytes.first().unwrap(), bytes.last().unwrap());
-        for interval in intervals.iter() {
-            let mut remaining = *interval;
-            while remaining > 0 {
-                let count = min(remaining, bytes.len() - 1);
-                buffer.write_all(&bytes[0..count]).unwrap();
-                remaining -= count;
-            }
-            buffer.write("\n".as_bytes()).unwrap();
+        tmpfile.flush().unwrap();
+        assert_eq!(count_file_lines(tmpfile.path().to_str().unwrap()).unwrap(), 0);
+    }
+
+    #[test]
+    fn test_count_file_lines_just_newlines() {
+        let mut tmpfile = NamedTempFile::new().unwrap();
+
+        for i in 1..257 {
+            tmpfile.write("\n".as_bytes()).unwrap();
+            tmpfile.flush().unwrap();
+            assert_eq!(count_file_lines(tmpfile.path().to_str().unwrap()).unwrap(), i);
         }
     }
 
     #[test]
-    fn test_count_file_lines() {
-        spread_newlines("tests/newline_count.test1.txt", vec![0]);
-        spread_newlines("tests/newline_count.test2.txt", vec![1]);
-        spread_newlines("tests/newline_count.test3.txt", vec![0, 0]);
-        spread_newlines("tests/newline_count.test4.txt", vec![0, 1, 2, 3, 4]);
-        spread_newlines("tests/newline_count.test5.txt", vec![64, 128, 192, 256, 512, 1023, 1024, 1025, 99, 90, 80, 70, 60, 50, 40, 30, 20, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 100]);
-        spread_newlines("tests/newline_count.test6.txt", vec![100, 1000, 10000]);
+    fn test_count_file_lines_mixed() {
+        let mut tmpfile = NamedTempFile::new().unwrap();
+        let mut buf: [u8; 512] = [0; 512];
+        for i in 0..512 {
+            buf[i] = (i % 256) as u8;
+        }
+        let mut lines: usize = 0;
+        for i in 0..256 {
+            for j in 1..257 {
+                let end = i+j;
+                tmpfile.write(&buf[i..end]).unwrap();
+                if i <= 10 && end > 10 {
+                    lines += 1;
+                }
+                if i <= 266 && end > 266 {
+                    lines += 1;
+                }
+            }
+        }
+        tmpfile.flush().unwrap();
+        assert_ne!(lines, 0);
+        assert_eq!(count_file_lines(tmpfile.path().to_str().unwrap()).unwrap(), lines);
     }
-
 }
