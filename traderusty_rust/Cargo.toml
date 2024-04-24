@@ -1,4 +1,3 @@
-workspace = { members = ["traderusty_wrap"] }
 [package]
 name = "traderusty_rust"
 version = "0.1.0"
