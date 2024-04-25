@@ -9,7 +9,6 @@ on:
   push:
     branches:
       - main
-      - master
     tags:
       - '*'
   pull_request:
@@ -23,8 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [x86_64]  # , x86, aarch64, armv7]
-        pyver:  ['3.7', '3.9', '3.10']
+        target: [x64]  # , x86
+        pyver:  ['3.7']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -71,8 +70,8 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        target: [aarch64]
-        pyver:  ['3.8', '3.9', '3.10']
+        target: [x64]
+        pyver:  ['3.9']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -83,7 +82,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
+          args: --release --universal2 --out dist --find-interpreter
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v4
