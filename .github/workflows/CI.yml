@@ -24,7 +24,7 @@ jobs:
     strategy:
       matrix:
         target: [x86_64]  # , x86, aarch64, armv7]
-        pyver:  ['3.7', '3.8', '3.9', '3.10']
+        pyver:  ['3.7', '3.9', '3.10']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -48,6 +48,7 @@ jobs:
     strategy:
       matrix:
         target: [x64]
+        pyver: ['3.10']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -95,7 +96,7 @@ jobs:
     strategy:
       matrix:
         target: [aarch64]
-        pyver:  ['3.7', '3.8', '3.8']
+        pyver:  ['3.8', '3.8']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
