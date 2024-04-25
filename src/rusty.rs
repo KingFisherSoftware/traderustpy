@@ -2,13 +2,15 @@ use std::fs::File;
 use std::io::{self, BufReader, Read};
 use bytecount::count as byte_counter;
 
+const READ_BUFFER_SIZE: usize = 128 * 1024;
+
 /// Counts the number of '\n's in a file as quickly as possible and then
 /// returns the count.
 #[allow(dead_code)]
 pub fn count_file_lines(filename: &str) -> io::Result<usize> {
     let file = File::open(filename)?;
     let mut reader = BufReader::new(file);
-    let mut buffer = vec![0; 256 * 1024]; // 256kb at a time
+    let mut buffer = vec![0; READ_BUFFER_SIZE]; // 256kb at a time
     let mut count = 0;
 
     loop {
