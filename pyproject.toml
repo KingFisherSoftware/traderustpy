@@ -18,4 +18,4 @@ tests = [
 [tool.maturin]
 python-source = "python"
 features = ["pyo3/extension-module"]
-include = [{ path = "python/traderusty/traderusty.pyi" }]
+include = [{ path = "**/traderusty.pyi" }]
