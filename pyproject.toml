@@ -4,13 +4,40 @@ build-backend = "maturin"
 
 [project]
 name = "traderusty"
+authors = [
+	{name = "Oliver 'kfsone' Smith", email = "oliver@kfs.org"},
+]
+maintainers = [
+	{name = "Oliver 'kfsone' Smith", email = "oliver@kfs.org"},
+}
+description  = "Rust extension module for TradeDangerous performance"
+readme = "README.md"
+license = {file = "LICENSE.txt", text = "MIT License"}
+keywords = ["addons", "Elite: Dangerous"]
+
 requires-python = ">=3.7"
 classifiers = [
+	"Development Status :: 3 - Alpha",
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
+	"Programming Language :: Python :: 3",
+	"Programming Language :: Python :: 3.7",
+	"Programming Language :: Python :: 3.8",
+	"Programming Language :: Python :: 3.9",
+	"Programming Language :: Python :: 3.10",
+	"License :: OSI Approved :: MIT License",
 ]
 dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/KingFisherSoftware/traderusty"
+Website = "https://github.com/eyeonus/Trade-Dangerous"
+Repository = "https://github.com/KingFisherSoftware/traderusty.git"
+Issues = "https://github.com/KingFisherSoftware/traderusty/issues"
+Issues = "https://github.com/KingFisherSoftware/traderusty/blob/main/CHANGELOG.md"
+
+
 [project.optional-dependencies]
 tests = [
     "pytest",
