@@ -1,7 +1,11 @@
 [package]
 name = "traderusty"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
+
+[features]
+default = ["runtime-dispatch-simd"]
+runtime-dispatch-simd = ["bytecount/runtime-dispatch-simd"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
@@ -9,8 +13,11 @@ name = "traderusty"
 crate-type = ["cdylib"]
 
 [dependencies]
-bytecount = "0.6.8"
 tempfile = "3.10.1"
+
+[dependencies.bytecount]
+version = "0.6.8"
+features = ["runtime-dispatch-simd"]
 
 [dependencies.pyo3]
 version = "0.21.1"
@@ -18,3 +25,4 @@ features = [ "abi3", "abi3-py37", "extension-module" ]
 
 [build-dependencies]
 maturin = "1.5.1"
+

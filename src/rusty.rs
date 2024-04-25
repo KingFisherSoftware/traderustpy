@@ -8,7 +8,7 @@ use bytecount::count as byte_counter;
 pub fn count_file_lines(filename: &str) -> io::Result<usize> {
     let file = File::open(filename)?;
     let mut reader = BufReader::new(file);
-    let mut buffer = vec![0; 65536];    // 64kb at a time
+    let mut buffer = vec![0; 256 * 1024]; // 256kb at a time
     let mut count = 0;
 
     loop {

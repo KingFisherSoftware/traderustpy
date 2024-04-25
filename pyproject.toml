@@ -9,10 +9,10 @@ authors = [
 ]
 maintainers = [
 	{name = "Oliver 'kfsone' Smith", email = "oliver@kfs.org"},
-}
+]
 description  = "Rust extension module for TradeDangerous performance"
 readme = "README.md"
-license = {file = "LICENSE.txt", text = "MIT License"}
+license = {text = "MIT License"}
 keywords = ["addons", "Elite: Dangerous"]
 
 requires-python = ">=3.7"
@@ -35,7 +35,7 @@ Homepage = "https://github.com/KingFisherSoftware/traderusty"
 Website = "https://github.com/eyeonus/Trade-Dangerous"
 Repository = "https://github.com/KingFisherSoftware/traderusty.git"
 Issues = "https://github.com/KingFisherSoftware/traderusty/issues"
-Issues = "https://github.com/KingFisherSoftware/traderusty/blob/main/CHANGELOG.md"
+Changelog = "https://github.com/KingFisherSoftware/traderusty/blob/main/CHANGELOG.md"
 
 
 [project.optional-dependencies]
