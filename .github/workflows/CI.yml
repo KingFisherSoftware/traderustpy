@@ -67,36 +67,12 @@ jobs:
           name: wheels-windows-${{ matrix.target }}
           path: dist
 
-  macos-multi:
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        target: [x86_64, aarch64]
-        pyver:  ['3.7']
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.pyver }}
-          architecture: ${{ matrix.target }}
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
-          sccache: 'true'
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-macos-${{ matrix.target }}
-          path: dist
-
-  macos-apple:
+  macos:
     runs-on: macos-latest
     strategy:
       matrix:
         target: [aarch64]
-        pyver:  ['3.8', '3.8']
+        pyver:  ['3.8', '3.9', '3.10']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -134,7 +110,7 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/')"
-    needs: [linux, windows, macos-multi, macos-apple, sdist]
+    needs: [linux, windows, macos, sdist]
     steps:
       - uses: actions/download-artifact@v4
       - name: Publish to PyPI
