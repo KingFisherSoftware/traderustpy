@@ -3,6 +3,7 @@ Changelog
 
 0.1.3 (2024-04-26)
 - Added `parse_supply_level` method
+- Build arm64 for MacOS / python 3.9
 
 0.1.2 (2024-04-24)
 0.1.1 (2024-04-24)

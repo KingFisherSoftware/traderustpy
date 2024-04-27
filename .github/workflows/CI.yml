@@ -70,7 +70,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        target: [x64]
+        target: [aarch64]
         pyver:  ['3.9']
     steps:
       - uses: actions/checkout@v4
