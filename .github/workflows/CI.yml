@@ -89,6 +89,29 @@ jobs:
           name: wheels-macos-arm64
           path: dist
 
+  macos-intel:
+    runs-on: macos-13
+    strategy:
+      matrix:
+        pyver: ['3.9']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.pyver }}
+          architecture: x64
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: x64
+          args: --release --out dist --find-interpreter
+          sccache: 'true'
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-macos-x64
+          path: dist
+
   sdist:
     runs-on: ubuntu-latest
     steps:
@@ -108,7 +131,7 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/')"
-    needs: [linux, windows, macos, sdist]
+    needs: [linux, windows, macos, macos-intel, sdist]
     steps:
       - uses: actions/download-artifact@v4
       - name: Publish to PyPI
