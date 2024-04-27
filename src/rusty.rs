@@ -6,7 +6,6 @@ const READ_BUFFER_SIZE: usize = 128 * 1024;
 
 /// Counts the number of '\n's in a file as quickly as possible and then
 /// returns the count.
-#[allow(dead_code)]
 pub fn count_file_lines(filename: &str) -> io::Result<usize> {
     let file = File::open(filename)?;
     let mut reader = BufReader::new(file);
@@ -22,6 +21,48 @@ pub fn count_file_lines(filename: &str) -> io::Result<usize> {
     }
 
     Ok(count)
+}
+
+
+/// Attempts to parse a supply level reading into a number of units and a
+/// level. The expected format is one of:
+///     ?               => unknown (represented by -1, -1)
+///     -               => zero    (0, 0),
+///     <units><level>
+///         units := [0-9]{1,4}
+///         level := { [Ll] => 1, [Mm] => 2, [Hh] => 3, '?' => -1 }
+///
+pub fn parse_supply_level(reading: &str) -> Result<(i32, i32), &'static str> {
+    if reading.len() > 1 {
+        if !reading.as_bytes()[0].is_ascii_digit() {
+            return Err("malformed supply reading");
+        }
+        // At least two characters, we can hope for units and a level
+        // Split it into two components.
+        let (digits, unit_char) = reading.split_at(reading.len() - 1);
+        let number = digits.parse::<u32>()
+            .map_err(|_| "invalid number in supply reading")?;
+        // Get the first character and convert to lowercase. God rust likes to be verbose.
+        let unit = match unit_char.as_bytes()[0].to_ascii_lowercase() as char {
+            '0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9' => return Err("missing level-suffix in supply reading"),
+            'l' => 1,
+            'm' => 2,
+            'h' => 3,
+            '?' => -1,
+            _ => return Err("invalid unit in supply reading")?
+        };
+
+        return Ok((number as i32, unit));
+    }
+
+    // 1 or zero characters, just do a direct match.
+    match reading {
+        "?" => Ok((-1, -1)),
+        "-" => Ok((0, 0)),
+        "0" => Ok((0, 0)),
+        ""  => Err("empty supply reading"),
+        _   => Err("invalid supply reading"),
+    }
 }
 
 
@@ -87,5 +128,66 @@ mod tests {
 
         assert_ne!(lines, 0);
         assert_eq!(count_file_lines(tmpfile.path().to_str().unwrap()).unwrap(), lines);
+    }
+
+    #[test]
+    fn test_parse_supply_level_invalid() {
+        // form a string that starts with a digit and ends with a valid level suffix,
+        // but has a non-numeric character that will cause the digits.parse to fail
+        assert_eq!(parse_supply_level("0:?"), Err("invalid number in supply reading"));
+        assert_eq!(parse_supply_level("0123123.m"), Err("invalid number in supply reading"));
+        // pass a number too large for a uint32
+        assert_eq!(parse_supply_level("9999999999999999999m"), Err("invalid number in supply reading"));
+
+        // pass a value that doesn't end with a valid suffix.
+        assert_eq!(parse_supply_level("00"), Err("missing level-suffix in supply reading"));
+
+        // pass a value that doesn't start with a digit
+        assert_eq!(parse_supply_level("?m"), Err("malformed supply reading"));
+
+        // try some invalid single chars.
+        assert_eq!(parse_supply_level("!"), Err("invalid supply reading"));
+        assert_eq!(parse_supply_level("a"), Err("invalid supply reading"));
+        assert_eq!(parse_supply_level("1"), Err("invalid supply reading"));
+
+        // lastly, empty string.
+        assert_eq!(parse_supply_level(""), Err("empty supply reading"));
+    }
+
+    #[test]
+    fn test_parse_supply_level_unknown() {
+        // "unknown" indicated by two -1s
+        assert_eq!(parse_supply_level("?"), Ok((-1, -1)));
+    }
+
+    #[test]
+    fn test_parse_supply_level_zero() {
+        // "zero"
+        assert_eq!(parse_supply_level("-"), Ok((0, 0)));
+        assert_eq!(parse_supply_level("0"), Ok((0, 0)));
+    }
+
+
+    #[test]
+    fn test_parse_supply_level_values() {
+        // 0 units, unknown level
+        assert_eq!(parse_supply_level("0?"), Ok((0, -1)));
+
+        // 10 units, low
+        assert_eq!(parse_supply_level("10l"), Ok((10, 1)));
+
+        // 1000 units, low caps
+        assert_eq!(parse_supply_level("1000L"), Ok((1000, 1)));
+
+        // 424242 units
+        assert_eq!(parse_supply_level("424242?"), Ok((424242, -1)));
+        assert_eq!(parse_supply_level("424242l"), Ok((424242, 1)));
+        assert_eq!(parse_supply_level("424242m"), Ok((424242, 2)));
+        assert_eq!(parse_supply_level("424242h"), Ok((424242, 3)));
+
+        // 2134567891 units
+        assert_eq!(parse_supply_level("2134567891L"), Ok((2134567891, 1)));
+        assert_eq!(parse_supply_level("2134567891M"), Ok((2134567891, 2)));
+        assert_eq!(parse_supply_level("2134567891H"), Ok((2134567891, 3)));
     }
 }
