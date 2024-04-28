@@ -66,6 +66,18 @@ pub fn parse_supply_level(reading: &str) -> Result<(i32, i32), &'static str> {
 }
 
 
+/// Calculates the stellar-grid key for a pair of coordinates.
+pub fn stellar_grid_key(x: f64, y: f64, z: f64) -> u64 {
+  let gx = ((x / 32.0) as i32) & (8192-1) as i32;
+  let gy = ((y / 32.0) as i32) & (8192-1) as i32;
+  let gz = ((z / 32.0) as i32) & (8192-1) as i32;
+
+  let key = ((gx as u64) << 26) | ((gy as u64) << 13) | (gz as u64);
+
+  key
+}
+
+
 #[cfg(test)]
 mod tests {
     use std::io::Write;
@@ -189,5 +201,50 @@ mod tests {
         assert_eq!(parse_supply_level("2134567891L"), Ok((2134567891, 1)));
         assert_eq!(parse_supply_level("2134567891M"), Ok((2134567891, 2)));
         assert_eq!(parse_supply_level("2134567891H"), Ok((2134567891, 3)));
+    }
+
+    #[test]
+    fn test_stellar_grid_key_zero() {
+        let actual_key = stellar_grid_key(0., 0., 0.);
+        assert_eq!(0, actual_key);
+    }
+
+    #[test]
+    fn test_stellar_grid_key_near_zero() {
+        // where -32 < n < 32, we should come out to zero also
+        assert_eq!(0, stellar_grid_key(1.0, 1.0, 1.0));
+        assert_eq!(0, stellar_grid_key(-1.0, -1.0, -1.0));
+        assert_eq!(0, stellar_grid_key(31.0, -31.0, 31.0));
+        assert_eq!(0, stellar_grid_key(-31.0, 31.0, -31.0));
+    }
+
+    #[test]
+    fn test_stellar_grid_key_non_ones() {
+        assert_eq!(1, stellar_grid_key(0., 0., 32.));
+        assert_eq!(1<<13, stellar_grid_key(0., 32., 0.));
+        assert_eq!(1<<26, stellar_grid_key(32., 0., 0.));
+        assert_eq!((1<<26)+(1<<13)+1, stellar_grid_key(32., 32., 32.));
+    }
+
+    #[test]
+    fn test_stellar_grid_key_negatives() {
+        // -1 should be represented as 8192-1
+        let neg1 = (8192-1) as u64;
+        assert_eq!((neg1<<26)+(neg1<<13)+neg1, stellar_grid_key(-32., -32., -32.));
+    }
+
+    #[test]
+    fn test_stellar_grid_key() {
+        // for the key: 42, -420, 69 we expect:
+        //  gx = (42/32) -> 1 << 26
+        //  gy = (-420/32) = -31 -> (8192-31) << 13
+        //  gz = (69/32) = 2
+        let actual = stellar_grid_key(42.1238, -420.03823, 69.3837);
+        let gx = actual >> 26;
+        let gy = actual >> 13 & (8192-1);
+        let gz = actual & (8192-1);
+        assert_eq!(gx, 42/32);
+        assert_eq!(gy, 8192 - 420/32);
+        assert_eq!(gz, 69 / 32);
     }
 }
