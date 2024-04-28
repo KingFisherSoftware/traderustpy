@@ -6,8 +6,7 @@ mod rusty;
 /// Returns the number of lines in a given file.
 #[pyfunction]
 fn count_file_lines(path: &str) -> PyResult<usize> {
-    rusty::count_file_lines(path)
-        .map_err(|e| PyIOError::new_err(format!("{}", e)))
+    rusty::count_file_lines(path).map_err(|e| PyIOError::new_err(format!("{}", e)))
 }
 
 /// Parses a supply level string into a tuple of ints (units, level).
