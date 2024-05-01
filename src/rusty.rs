@@ -68,14 +68,39 @@ pub fn parse_supply_level(reading: &str) -> Result<(i32, i32), &'static str> {
 }
 
 /// Calculates the stellar-grid key for a pair of coordinates.
+/*
+ATOW current populated values for x, y, and z are:
+│ min(pos_x)  │ max(pos_x) │ min(pos_y) │ max(pos_y) │ min(pos_z) │ max(pos_z)  │
+│ -42213.8125 │ 40503.8125 │ -3381.375  │ 5319.21875 │ -16899.75  │ 65630.15625 │
+
+dividing by 32 proved to produce a good balance between bucket count/bucket size,
+│  min x /32  │ max x /32  │ min y / 32 │ max y / 32 │ min z / 32 │ max z / 32  │
+│ -1319.18164 │ 1265.74414 │ -105.66796 │ 166.225585 │ -528.11718 │ 2050.942382 │
+
+-> x (-1320,+1266), y (-106, +167), z (-529, +2051)
+next power of two:
+->   (-2048,+2048),   (-128, +256),   (-1024, +4096)
+
+I think it's reasonable to imagine those limits being exceeded at least once, so
+we can assume that we need to store values of upto +/- 8192 for each coordinate,
+which calls for signed 16-bit compartments.
+ */
+fn stellar_grid_key_component(component: f64) -> i16 {
+    (component / 32.).floor() as i16
+}
+
 pub fn stellar_grid_key(x: f64, y: f64, z: f64) -> u64 {
-    let gx = ((x / 32.0) as i32) & (8192 - 1) as i32;
-    let gy = ((y / 32.0) as i32) & (8192 - 1) as i32;
-    let gz = ((z / 32.0) as i32) & (8192 - 1) as i32;
+    // I've chosen to make 'y' the most-significant word here because it currently
+    // has the least range since the galaxy is disk-like, and because it represents
+    // galactic "north/south".
+    // Promote gy into a u32 so that negatives fill all the most significant bits:
+    //  0xffffi16 -> i64 -> u64 = 0xffffffffffffffff
+    // where i16 -> u16 -> u64 = 0x000000000000ffff
+    let gy = stellar_grid_key_component(y) as i64 as u64;
+    let gx = stellar_grid_key_component(x) as u16 as u64;
+    let gz = stellar_grid_key_component(z) as u16 as u64;
 
-    let key = ((gx as u64) << 26) | ((gy as u64) << 13) | (gz as u64);
-
-    key
+    (gy << 32) | (gx << 16) | gz
 }
 
 #[cfg(test)]
@@ -230,50 +255,89 @@ mod tests {
     }
 
     #[test]
+    fn test_sellar_grid_key_component() {
+        // positive values should populate the space 0+,
+        // while negative values should start at -1.
+        assert_eq!(0i16, stellar_grid_key_component(0.));
+        assert_eq!(0i16, stellar_grid_key_component(-0.));
+        assert_eq!(0i16, stellar_grid_key_component(1.));
+        assert_eq!(0i16, stellar_grid_key_component(2.));
+        assert_eq!(0i16, stellar_grid_key_component(16.));
+        assert_eq!(0i16, stellar_grid_key_component(31.9999));
+        assert_eq!(1i16, stellar_grid_key_component(32.0));
+        assert_eq!(1i16, stellar_grid_key_component(63.9999999999));
+        assert_eq!(2i16, stellar_grid_key_component(64.));
+
+        assert_eq!(-1i16, stellar_grid_key_component(-0.00001));
+        assert_eq!(-1i16, stellar_grid_key_component(-1.));
+        assert_eq!(-1i16, stellar_grid_key_component(-2.));
+        assert_eq!(-1i16, stellar_grid_key_component(-16.));
+        assert_eq!(-1i16, stellar_grid_key_component(-31.9999));
+        assert_eq!(-1i16, stellar_grid_key_component(-32.0));
+        assert_eq!(-2i16, stellar_grid_key_component(-32.000000001));
+        assert_eq!(-2i16, stellar_grid_key_component(-63.9999999999));
+        assert_eq!(-2i16, stellar_grid_key_component(-64.));
+        assert_eq!(-3i16, stellar_grid_key_component(-64.0000001));
+    }
+
+    #[test]
     fn test_stellar_grid_key_zero() {
         let actual_key = stellar_grid_key(0., 0., 0.);
         assert_eq!(0, actual_key);
     }
 
     #[test]
+    fn test_stellar_grd_key_minus_one() {
+        let actual_key = stellar_grid_key(-1., -1., -1.);
+        assert_eq!(-1i64 as u64, actual_key);
+    }
+
+    #[test]
     fn test_stellar_grid_key_near_zero() {
         // where -32 < n < 32, we should come out to zero also
         assert_eq!(0, stellar_grid_key(1.0, 1.0, 1.0));
-        assert_eq!(0, stellar_grid_key(-1.0, -1.0, -1.0));
-        assert_eq!(0, stellar_grid_key(31.0, -31.0, 31.0));
-        assert_eq!(0, stellar_grid_key(-31.0, 31.0, -31.0));
+        assert_eq!(0, stellar_grid_key(31.0, 31.0, 31.0));
+
+        assert_ne!(0, stellar_grid_key(0.,  0.,  32.));
+        assert_ne!(0, stellar_grid_key(0.,  32.,  0.));
+        assert_ne!(0, stellar_grid_key(0.,  32.,  32.));
+        assert_ne!(0, stellar_grid_key(32.,  0.,  0.));
+        assert_ne!(0, stellar_grid_key(32.,  0.,  32.));
+        assert_ne!(0, stellar_grid_key(32.,  32.,  0.));
+        assert_ne!(0, stellar_grid_key(32.,  32.,  32.));
     }
 
     #[test]
-    fn test_stellar_grid_key_non_ones() {
-        assert_eq!(1, stellar_grid_key(0., 0., 32.));
-        assert_eq!(1 << 13, stellar_grid_key(0., 32., 0.));
-        assert_eq!(1 << 26, stellar_grid_key(32., 0., 0.));
-        assert_eq!((1 << 26) + (1 << 13) + 1, stellar_grid_key(32., 32., 32.));
+    fn test_stellar_grid_key_near_minus_1() {
+        let neg1key = -1i64 as u64;
+
+        assert_eq!(neg1key, stellar_grid_key(-1.0, -1.0, -1.0));
+        assert_eq!(neg1key, stellar_grid_key(-32.0, -32.0, -32.0));
+
+        assert_ne!(neg1key, stellar_grid_key( -0.,   -0.,   -32.1));
+        assert_ne!(neg1key, stellar_grid_key( -0.,   -32.1, -0.));
+        assert_ne!(neg1key, stellar_grid_key( -0.,   -32.1, -321.));
+        assert_ne!(neg1key, stellar_grid_key(-32.1,  -0.,   -0.));
+        assert_ne!(neg1key, stellar_grid_key(-32.1,  -0.,   -321.));
+        assert_ne!(neg1key, stellar_grid_key(-32.1,  -32.1, -0.));
+        assert_ne!(neg1key, stellar_grid_key(-32.1,  -32.1, -32.1));
     }
 
     #[test]
-    fn test_stellar_grid_key_negatives() {
-        // -1 should be represented as 8192-1
-        let neg1 = (8192 - 1) as u64;
-        assert_eq!(
-            (neg1 << 26) + (neg1 << 13) + neg1,
-            stellar_grid_key(-32., -32., -32.)
-        );
+    fn test_stellar_grid_key_ordering_pos() {
+        // 1.0, 2.0, 3.0 should be -> 0x00 0x02 0x01 0x03
+        let result = stellar_grid_key(32.0, 64.0, 96.0);
+        assert_eq!(1, (result >> 16) & 0xff);
+        assert_eq!(2, (result >> 32) & 0xffff);
+        assert_eq!(3, (result >> 0 ) & 0xff);
     }
 
     #[test]
-    fn test_stellar_grid_key() {
-        // for the key: 42, -420, 69 we expect:
-        //  gx = (42/32) -> 1 << 26
-        //  gy = (-420/32) = -31 -> (8192-31) << 13
-        //  gz = (69/32) = 2
-        let actual = stellar_grid_key(42.1238, -420.03823, 69.3837);
-        let gx = actual >> 26;
-        let gy = actual >> 13 & (8192 - 1);
-        let gz = actual & (8192 - 1);
-        assert_eq!(gx, 42 / 32);
-        assert_eq!(gy, 8192 - 420 / 32);
-        assert_eq!(gz, 69 / 32);
+    fn test_stellar_grid_key_ordering_neg() {
+        let result = stellar_grid_key(-33.0, -65.0, -97.0);
+        // this should be: (-3 << 32) | (-2 << 16) | (-4)
+        // aka: 0xfffffffefffffffd
+        let expectation = 0xfffffffdfffefffc;
+        assert_eq!(expectation, result);
     }
 }

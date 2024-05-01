@@ -1,6 +1,9 @@
 Changelog
 ---------
 
+0.1.5 (2024-05-01)
+- Changed `stellar_grid_key` implementation to avoid overloading 0,0,0
+
 0.1.4 (2024-04-27)
 - Added `stellar_grid_key`
 - Add MacOS 13 x86 build / python 3.9
